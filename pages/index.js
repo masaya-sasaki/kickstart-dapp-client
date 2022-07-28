@@ -1,8 +1,14 @@
+import React, {useState} from 'react'; 
 import Head from 'next/head'
-import Image from 'next/image'
+import Layout from '../component/layout';
 import styles from '../styles/Home.module.css'
+import { providers, Contract} from 'ethers';
+import { Card, Button, Icon, Header, Grid, GridRow, GridColumn } from 'semantic-ui-react';
+import CampaignFactoryJson from '../CampaignFactory.json'
+import Link from 'next/link';
 
-export default function Home() {
+export default function Home({addresses}) {
+
   return (
     <div className={styles.container}>
       <Head>
@@ -11,59 +17,77 @@ export default function Home() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <main className={styles.main}>
-        <h1 className={styles.title}>
-          Welcome to <a href="https://nextjs.org">Next.js!</a>
-        </h1>
-
-        <p className={styles.description}>
-          Get started by editing{' '}
-          <code className={styles.code}>pages/index.js</code>
-        </p>
-
-        <div className={styles.grid}>
-          <a href="https://nextjs.org/docs" className={styles.card}>
-            <h2>Documentation &rarr;</h2>
-            <p>Find in-depth information about Next.js features and API.</p>
-          </a>
-
-          <a href="https://nextjs.org/learn" className={styles.card}>
-            <h2>Learn &rarr;</h2>
-            <p>Learn about Next.js in an interactive course with quizzes!</p>
-          </a>
-
-          <a
-            href="https://github.com/vercel/next.js/tree/canary/examples"
-            className={styles.card}
-          >
-            <h2>Examples &rarr;</h2>
-            <p>Discover and deploy boilerplate example Next.js projects.</p>
-          </a>
-
-          <a
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-            className={styles.card}
-          >
-            <h2>Deploy &rarr;</h2>
-            <p>
-              Instantly deploy your Next.js site to a public URL with Vercel.
-            </p>
-          </a>
-        </div>
-      </main>
-
-      <footer className={styles.footer}>
-        <a
-          href="https://vercel.com?utm_source=create-next-app&utm_medium=default-template&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Powered by{' '}
-          <span className={styles.logo}>
-            <Image src="/vercel.svg" alt="Vercel Logo" width={72} height={16} />
-          </span>
-        </a>
-      </footer>
+      <Layout>
+        <Header>
+          Open Campaigns
+        </Header>
+        <Grid>
+          <GridRow>
+            <GridColumn width={10}>
+              <Card.Group>
+                {
+                    addresses.map((item, index) => {
+                      return (
+                      <Card key={'address'+index} fluid>
+                        <Card.Content>
+                          <Card.Header>Campaign {index+1}</Card.Header>
+                          <Card.Description>
+                            The campaign address is {item} 
+                            <br/>
+                            <a href={`/campaigns/${item}`}>View Campaign</a>
+                          </Card.Description>
+                        </Card.Content>
+                      </Card>
+                      )
+                    })
+                }
+              </Card.Group>
+            </GridColumn>
+            <GridColumn width={6}>
+            <Link href='/campaigns/new'>
+              <Button
+              icon 
+              labelPosition='left'
+              primary 
+              floated='right'
+              >
+                <Icon name='plus circle'/>
+                Create a new campaign 
+              </Button>
+            </Link>
+            </GridColumn>
+          </GridRow>
+        </Grid>
+      </Layout>
+      
     </div>
   )
 }
+
+// Before writing get initial props, 
+// a provider and a contract is needed to access 
+// the contract. 
+// Probably have to get the json for the abi and address of the campaign factory
+// which is 0xb17f0128f879EA830d2dfA23621ccF13099a65Ba at Goerli
+// In order to do that on the server side, 
+// it is probably the best to, write a function that does all this. 
+  const CampaignFactoryAddress = '0xF04e6744F9C47022c439754F8a0dEa6De3eE7597'
+  const getCampaignAddress = async () => {
+    const provider = new providers.AlchemyProvider(
+        'goerli', 
+        process.env.API_KEY
+      )
+    const CampaignFactory = new Contract(CampaignFactoryAddress, JSON.stringify(CampaignFactoryJson.abi), provider)        
+    const campaigns = await CampaignFactory.getDeployedCampaigns()
+    console.log(campaigns)
+    return campaigns; 
+  }
+
+// Write get initial props to fetch the campaign address
+Home.getInitialProps = async (ctx) => {
+  const addresses = await getCampaignAddress(); 
+  return {
+    addresses: addresses
+  }
+}
+
